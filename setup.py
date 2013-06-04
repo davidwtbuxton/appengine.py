@@ -2,7 +2,7 @@ from distutils.core import Command, setup
 from distutils.command.install import install as distutils_install
 
 
-__version__ = ''
+__version__ = '1.8.0'
 
 
 class install(distutils_install):
