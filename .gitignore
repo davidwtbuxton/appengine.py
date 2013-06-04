@@ -1,0 +1,7 @@
+*.py[cod]
+/dist
+/venv
+.DS_Store
+/MANIFEST
+.tox*
+

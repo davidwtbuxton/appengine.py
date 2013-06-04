@@ -1,0 +1,3 @@
+include appengine.py
+include README.rst
+include LICENSE
