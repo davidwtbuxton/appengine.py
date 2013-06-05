@@ -6,7 +6,7 @@ from setuptools import Command, setup
 from setuptools.command.install import install as _install
 
 
-__version__ = '1.8.0'
+__version__ = '1.8.0.1'
 
 
 class install(_install):
