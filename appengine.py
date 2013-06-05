@@ -14,6 +14,7 @@ USER_AGENT = 'appengine.py/'+ __version__
 VERSION_URL = 'https://appengine.google.com/api/updatecheck'
 DOWNLOAD_URL = 'http://googleappengine.googlecode.com/files/google_appengine_{0}.zip'
 _progress_chars = itertools.cycle('-\|/')
+sdk_version_key = 'APPENGINEPY_SDK_VERSION'
 
 
 def _print_progress(filename):
@@ -90,6 +91,6 @@ if __name__ == "__main__":
     try:
         version = sys.argv[1]
     except IndexError:
-        version = None
+        version = os.environ.get(sdk_version_key, None)
 
     sys.exit(main(version=version))

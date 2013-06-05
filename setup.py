@@ -1,25 +1,36 @@
-from distutils.core import Command, setup
-from distutils.command.install import install as distutils_install
+import os
+import subprocess
+import sys
+
+from setuptools import Command, setup
+from setuptools.command.install import install as _install
 
 
 __version__ = ''
 
 
-class install(distutils_install):
-    sub_commands = distutils_install.sub_commands + [('install_appengine', None)]
+class install(_install):
+    sub_commands = _install.sub_commands + [('install_appengine', None)]
 
 
 class install_appengine(Command):
+    user_options = [('skip-install', None, 'skip installing the App Engine SDK')]
+    boolean_options = ['skip-install']
+
     def initialize_options(self):
-        pass
+        self.skip_install = False
 
     def finalize_options(self):
         pass
 
-    def run(self):
-        import appengine
+    def get_outputs(self):
+        return []
 
-        appengine.main(version=__version__)
+    def run(self):
+        if not self.skip_install:
+            os.environ.setdefault('APPENGINEPY_SDK_VERSION', __version__)
+            filename = os.path.join(os.path.dirname(__file__), 'appengine.py')
+            subprocess.call([sys.executable, filename])
 
 
 setup(
