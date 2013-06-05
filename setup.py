@@ -5,44 +5,45 @@ import sys
 from setuptools import Command, setup
 from setuptools.command.install import install as _install
 
-
-sdk_version = ''
-__version__ = sdk_version + '.2'
+import appengine
 
 
 class install(_install):
-    sub_commands = _install.sub_commands + [('install_appengine', None)]
-
-
-class install_appengine(Command):
-    user_options = [('skip-install', None, 'skip installing the App Engine SDK')]
-    boolean_options = ['skip-install']
+    user_options = _install.user_options + [('install-appengine', None, 'install the App Engine SDK')]
+    boolean_options = _install.boolean_options + ['install-appengine']
 
     def initialize_options(self):
-        self.skip_install = False
+        _install.initialize_options(self)
+
+        self.install_appengine = None
 
     def finalize_options(self):
-        pass
+        _install.finalize_options(self)
 
-    def get_outputs(self):
-        return []
+        if self.install_appengine is None:
+            try:
+                value = int(os.environ.get('INSTALL_APPENGINE', '0'))
+            except ValueError:
+                value = 0
+            self.install_appengine = bool(value)
 
     def run(self):
-        if not self.skip_install:
-            os.environ.setdefault('APPENGINEPY_SDK_VERSION', sdk_version)
+        _install.run(self)
+
+        if self.install_appengine:
             filename = os.path.join(os.path.dirname(__file__), 'appengine.py')
             subprocess.call([sys.executable, filename])
 
 
 setup(
     name = 'appengine',
-    version = __version__,
+    version = appengine.__version__,
     description = 'Google App Engine re-packaged for PyPI',
     author = 'David Buxton',
     author_email = 'david@gasmark6.com',
     url = 'https://github.com/davidwtbuxton/appengine.py',
     scripts = ['appengine.py'],
-    cmdclass = {'install': install, 'install_appengine': install_appengine},
+    cmdclass = {'install': install},
     classifiers = [
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

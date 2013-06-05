@@ -11,7 +11,7 @@ import urllib2
 import zipfile
 
 
-__version__ = '0.1'
+__version__ = '0.2'
 USER_AGENT = 'appengine.py/' + __version__
 VERSION_URL = 'https://appengine.google.com/api/updatecheck'
 DOWNLOAD_URL = 'http://googleappengine.googlecode.com/files/google_appengine_%s.zip'
