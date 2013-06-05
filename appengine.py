@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import with_statement
+
 from cStringIO import StringIO
 import itertools
 import logging
@@ -10,15 +12,45 @@ import zipfile
 
 
 __version__ = '0.1'
-USER_AGENT = 'appengine.py/'+ __version__
+USER_AGENT = 'appengine.py/' + __version__
 VERSION_URL = 'https://appengine.google.com/api/updatecheck'
-DOWNLOAD_URL = 'http://googleappengine.googlecode.com/files/google_appengine_{0}.zip'
+DOWNLOAD_URL = 'http://googleappengine.googlecode.com/files/google_appengine_%s.zip'
 _progress_chars = itertools.cycle('-\|/')
 sdk_version_key = 'APPENGINEPY_SDK_VERSION'
 
 
 def _print_progress(filename):
     filename.write('\b' + next(_progress_chars))
+
+
+def _extract_zip(archive, dest=None, members=None):
+    """Extract the ZipInfo object to a real file on the path targetpath."""
+    # Python 2.5 compatibility.
+    dest = dest or os.getcwd()
+    members = members or archive.infolist()
+
+    for member in members:
+        if isinstance(member, basestring):
+            member = archive.getinfo(member)
+
+        _extract_zip_member(archive, member, dest)
+
+
+def _extract_zip_member(archive, member, dest):
+    # Python 2.5 compatibility.
+    target = member.filename
+    if target[0] == '/':
+        target = target[1:]
+
+    target = os.path.join(dest, target)
+    target = os.path.normpath(target)
+
+    parent_name = os.path.dirname(target)
+    if not os.path.exists(parent_name):
+        os.makedirs(parent_name)
+
+    with open(target, 'w') as fh:
+        fh.write(archive.read(member.filename))
 
 
 def get(url):
@@ -29,7 +61,7 @@ def get(url):
 
 def check_version(url=VERSION_URL):
     """Returns the version string for the latest SDK."""
-    for line in urllib2.urlopen(url):
+    for line in get(url):
         if 'release:' in line:
             return line.split(':')[-1].strip(' \'"\r\n')
 
@@ -38,14 +70,14 @@ def download_sdk(version=None):
     if version is None:
         version = check_version()
 
-    url = DOWNLOAD_URL.format(version)
+    url = DOWNLOAD_URL % version
 
     return get(url)
 
 
 def install_sdk(filename, dest='.'):
     zip = zipfile.ZipFile(filename)
-    zip.extractall(path=dest)
+    _extract_zip(zip, dest=dest)
 
     return dest
 
