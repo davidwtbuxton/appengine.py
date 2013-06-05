@@ -6,7 +6,8 @@ from setuptools import Command, setup
 from setuptools.command.install import install as _install
 
 
-__version__ = ''
+sdk_version = ''
+__version__ = sdk_version + '.2'
 
 
 class install(_install):
@@ -28,7 +29,7 @@ class install_appengine(Command):
 
     def run(self):
         if not self.skip_install:
-            os.environ.setdefault('APPENGINEPY_SDK_VERSION', __version__)
+            os.environ.setdefault('APPENGINEPY_SDK_VERSION', sdk_version)
             filename = os.path.join(os.path.dirname(__file__), 'appengine.py')
             subprocess.call([sys.executable, filename])
 
