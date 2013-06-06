@@ -41,5 +41,32 @@ class ExtractZipTestCase(unittest.TestCase):
         self.assertEqual(mock_extract.call_args_list[0][0][1].filename, '/foo')
 
 
+class ArgvParsingTestCase(unittest.TestCase):
+    def test_opts(self):
+        # Argument option parsing.
+        from appengine import make_parser
+
+        argv = '--prefix /foo/local --bindir /foo/local/bin --force --no-bindir'
+        parser = make_parser()
+        opts, args = parser.parse_args(argv.split())
+
+        self.assertEqual(opts.force, True)
+        self.assertEqual(opts.prefix, '/foo/local')
+        self.assertEqual(opts.bindir, '/foo/local/bin')
+        self.assertEqual(opts.no_bindir, True)
+
+    def test_default_opts(self):
+        # Default values for missing options.
+        from appengine import make_parser
+
+        parser = make_parser()
+        opts, args = parser.parse_args(''.split())
+
+        self.assertEqual(opts.force, False)
+        self.assertEqual(opts.prefix, None)
+        self.assertEqual(opts.bindir, None)
+        self.assertEqual(opts.no_bindir, False)
+
+
 if __name__ == "__main__":
     unittest.main()

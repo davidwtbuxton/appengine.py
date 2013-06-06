@@ -4,6 +4,7 @@ from __future__ import with_statement
 from cStringIO import StringIO
 import itertools
 import logging
+import optparse
 import os
 import stat
 import sys
@@ -51,6 +52,19 @@ def _extract_zip_member(archive, member, dest):
 
     with open(target, 'w') as fh:
         fh.write(archive.read(member.filename))
+
+
+def make_parser():
+    """Returns a new option parser."""
+    p = optparse.OptionParser()
+    p.add_option('--prefix', metavar='DIR', help='install SDK in DIR')
+    p.add_option('--bindir', metavar='DIR', help='install tools in DIR')
+    p.add_option('--force', action='store_true', default=False,
+        help='over-write existing installation')
+    p.add_option('--no-bindir', action='store_true', default=False,
+        help='do not install tools on DIR')
+
+    return p
 
 
 def get(url):
