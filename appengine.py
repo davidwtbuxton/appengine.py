@@ -9,6 +9,7 @@ import os
 import stat
 import sys
 import urllib2
+import urlparse
 import zipfile
 
 
@@ -16,12 +17,7 @@ __version__ = '0.2'
 USER_AGENT = 'appengine.py/' + __version__
 VERSION_URL = 'https://appengine.google.com/api/updatecheck'
 DOWNLOAD_URL = 'http://googleappengine.googlecode.com/files/google_appengine_%s.zip'
-_progress_chars = itertools.cycle('-\|/')
 sdk_version_key = 'APPENGINEPY_SDK_VERSION'
-
-
-def _print_progress(filename):
-    filename.write('\b' + next(_progress_chars))
 
 
 def _extract_zip(archive, dest=None, members=None):
@@ -40,18 +36,25 @@ def _extract_zip(archive, dest=None, members=None):
 def _extract_zip_member(archive, member, dest):
     # Python 2.5 compatibility.
     target = member.filename
-    if target[0] == '/':
+    if target[:1] == '/':
         target = target[1:]
 
     target = os.path.join(dest, target)
-    target = os.path.normpath(target)
 
-    parent_name = os.path.dirname(target)
-    if not os.path.exists(parent_name):
-        os.makedirs(parent_name)
+    # It's a directory.
+    if target[-1:] == '/':
+        parent = target[:-1]
+        target = ''
+    else:
+        target = os.path.normpath(target)
+        parent = os.path.dirname(target)
 
-    with open(target, 'w') as fh:
-        fh.write(archive.read(member.filename))
+    if not os.path.exists(parent):
+        os.makedirs(parent)
+
+    if target:
+        with open(target, 'w') as fh:
+            fh.write(archive.read(member.filename))
 
 
 def make_parser():
@@ -67,6 +70,19 @@ def make_parser():
     return p
 
 
+def parse_args(argv):
+    """Returns a tuple of (opts, args) for arguments."""
+    parser = make_parser()
+
+    opts, args = parser.parse_args(argv[1:])
+
+    # Use APPENGINEPY_SDK_VERSION if set.
+    if not args and (sdk_version_key in os.environ):
+        args = (os.environ[sdk_version_key],)
+
+    return opts, args
+
+
 def get(url):
     request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
 
@@ -80,23 +96,55 @@ def check_version(url=VERSION_URL):
             return line.split(':')[-1].strip(' \'"\r\n')
 
 
-def download_sdk(version=None):
-    if version is None:
-        version = check_version()
+def parse_sdk_name(name):
+    """Returns a filename or URL for the SDK name.
 
-    url = DOWNLOAD_URL % version
+    The name can be a version string, a remote URL or a local path.
+    """
+    # Version like x.y.z, return as-is.
+    if all(part.isdigit() for part in name.split('.', 2)):
+        return DOWNLOAD_URL % name
 
-    return get(url)
+    # A network location.
+    url = urlparse.urlparse(name)
+    if url.scheme:
+        return name
+
+    # Else must be a filename.
+    return os.path.abspath(name)
 
 
-def install_sdk(filename, dest='.'):
+def open_sdk(url):
+    """Open the SDK from the URL, which can be either a network location or
+    a filename path. Returns a file-like object open for reading.
+    """
+    if urlparse.urlparse(url).scheme:
+        return _download(url)
+    else:
+        return open(url)
+
+
+def _download(url):
+    """Downloads an URL and returns a file-like object open for reading,
+    compatible with zipping.ZipFile (it has a seek() method).
+    """
+    fh = StringIO()
+
+    for line in get(url):
+        fh.write(line)
+
+    fh.seek(0)
+    return fh
+
+
+def install_sdk(filename, dest='.', overwrite=False):
     zip = zipfile.ZipFile(filename)
     _extract_zip(zip, dest=dest)
 
     return dest
 
 
-def install_tools(src, dest):
+def install_tools(src, dest, overwrite=False):
     tools = [name for name in os.listdir(src) if name.endswith('.py')]
     all_x = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
@@ -105,38 +153,30 @@ def install_tools(src, dest):
         new_mode = os.stat(src_name).st_mode | all_x
         os.chmod(src_name, new_mode)
         dest_name = os.path.join(dest, name)
+
+        if overwrite:
+            try:
+                os.unlink(dest_name)
+            except OSError:
+                pass
+
         os.symlink(src_name, dest_name)
 
     return tools
 
 
-def main(version=None):
-    if not version:
-        version = check_version()
+def main(argv):
+    opts, args = parse_args(argv)
+    version = args[0] if args else check_version()
+    sdk_url = parse_sdk_name(version)
 
-    try:
-        os.environ['VIRTUAL_ENV']
-    except KeyError:
-        sys.stderr.write('Installation requires a virtual environment to be active.\n')
-        return 1
-
-    archive = StringIO()
-    for line in download_sdk(version=version):
-        archive.write(line)
-    # zipfile wants a seek() method.
-    archive.seek(0)
-
-    install_path = install_sdk(archive, dest=sys.prefix)
+    archive = open_sdk(sdk_url)
+    install_path = install_sdk(archive, dest=sys.prefix, overwrite=opts.force)
 
     src = os.path.join(install_path, 'google_appengine')
     dest = os.path.join(os.environ['VIRTUAL_ENV'], 'bin')
-    install_tools(src, dest)
+    install_tools(src, dest, overwrite=opts.force)
 
 
 if __name__ == "__main__":
-    try:
-        version = sys.argv[1]
-    except IndexError:
-        version = os.environ.get(sdk_version_key, None)
-
-    sys.exit(main(version=version))
+    sys.exit(main(sys.argv))
