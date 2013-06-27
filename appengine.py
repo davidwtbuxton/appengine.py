@@ -163,6 +163,17 @@ def _install_bin(src, dest=None, force=False):
     return tools
 
 
+def urlopen(url, **kwargs):
+    """Wrapper for urllib2.urlopen(...) that ignores TypeError on Python 2.5
+    when called with timeout keyword argument.
+    """
+    try:
+        return urllib2.urlopen(url, **kwargs)
+    except TypeError:
+        kwargs.pop('timeout', None)
+        return urllib2.urlopen(url, **kwargs)
+
+
 def get(url):
     """Returns a file-like object open for reading. For compatibility with
     zipfile, the object has a .seek() method.
@@ -171,7 +182,9 @@ def get(url):
     request = urllib2.Request(url, headers=headers)
 
     logging.debug('Downloading %r', url)
-    return StringIO(urllib2.urlopen(request, timeout=30).read())
+
+    response = urlopen(request, timeout=30)
+    return StringIO(response.read())
 
 
 def _version(filename):
@@ -301,7 +314,7 @@ def main(argv):
         return 1
 
     if action == 'check' or sdk is None:
-        check(opts.prefix)
+        sdk, installed = check(opts.prefix)
 
     if action == 'install':
         install(sdk, cache=opts.cache, prefix=opts.prefix, bindir=opts.bindir, force=opts.force)
