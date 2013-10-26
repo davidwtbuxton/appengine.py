@@ -1,8 +1,6 @@
 import os
-import subprocess
-import sys
 
-from setuptools import Command, setup
+from setuptools import setup
 from setuptools.command.install import install as _install
 
 import appengine
@@ -26,8 +24,7 @@ class install(_install):
         _install.run(self)
 
         if self.install_appengine:
-            filename = os.path.join(os.path.dirname(__file__), 'appengine.py')
-            subprocess.call([sys.executable, filename, 'install', self.install_appengine])
+            appengine.install(self.install_appengine)
 
 
 setup(
