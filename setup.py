@@ -9,24 +9,25 @@ import appengine
 
 
 class install(_install):
-    """Custom setuptools install command which will run `appengine.py install`
-    if INSTALL_APPENGINE=1 or if `setup.py install --install-appengine`."""
-    user_options = _install.user_options + [('install-appengine', None, 'install the App Engine SDK')]
-    boolean_options = _install.boolean_options + ['install-appengine']
+    """Custom install command which will run ``appengine.py install <version>``
+    if the environment variable INSTALL_APPENGINE is set to the version string
+    to install or when passing ``--install-appengine <version>`` to
+    ``setup.py install``."""
+
+    user_options = _install.user_options + [('install-appengine=', None,
+        'install the given version of the App Engine SDK')]
 
     def initialize_options(self):
         _install.initialize_options(self)
 
-        self.install_appengine = False
-        if 'INSTALL_APPENGINE' in os.environ:
-            self.install_appengine = os.environ['INSTALL_APPENGINE'].lower() in ('yes', 'true', '1')
+        self.install_appengine = os.environ.get('INSTALL_APPENGINE', False)
 
     def run(self):
         _install.run(self)
 
         if self.install_appengine:
             filename = os.path.join(os.path.dirname(__file__), 'appengine.py')
-            subprocess.call([sys.executable, filename, 'install'])
+            subprocess.call([sys.executable, filename, 'install', self.install_appengine])
 
 
 setup(
