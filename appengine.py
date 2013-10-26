@@ -134,6 +134,7 @@ def _open(url):
 
 def _install(filename, force=False, prefix=None, bindir=None):
     prefix = prefix or sys.prefix
+    bindir = bindir or os.path.join(prefix, 'bin')
     zip = zipfile.ZipFile(filename)
     _extract_zip(zip, prefix)
     return _install_bin(os.path.join(prefix, SDK_DIRECTORY), dest=bindir)
