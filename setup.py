@@ -24,7 +24,8 @@ class install(_install):
         _install.run(self)
 
         if self.install_appengine:
-            appengine.install(self.install_appengine)
+            prefix = self.install_userbase if self.user else self.prefix
+            appengine.install(self.install_appengine, prefix=prefix)
 
 
 setup(
