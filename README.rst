@@ -63,7 +63,7 @@ Thus the command `appengine.py install 1.8.0` is equivalent to setting the envir
     appengine.py install
 
 
-Contributers
+Contributors
 ------------
 
 Florian Rathgeber <florian.rathgeber@gmail.com>
